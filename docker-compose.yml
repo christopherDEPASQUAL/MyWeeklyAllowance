@@ -1,0 +1,67 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: myweeklyallowance
+    ports:
+      - "8080:80"
+    environment:
+      APP_ENV: local
+      APP_DEBUG: "true"
+    env_file:
+      - .env
+    volumes:
+      # On monte tout le projet dans /var/www/app
+      - ./:/var/www/app:cached
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - mywa_network
+
+  db:
+    image: mysql:8.0
+    container_name: mywa_db
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME} 
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -p${DB_ROOT_PASSWORD:-root} || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - mywa_network
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:latest
+    container_name: mywa_phpmyadmin
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      PMA_HOST: db
+      PMA_USER: ${DB_USER}
+      PMA_PASSWORD: ${DB_PASSWORD}
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8081:80"
+    networks:
+      - mywa_network
+
+volumes:
+  db_data:
+
+networks:
+  mywa_network:
+    driver: bridge
