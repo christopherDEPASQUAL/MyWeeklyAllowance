@@ -6,12 +6,11 @@ namespace Tests\Application;
 
 use App\Application\Dto\WeekSummaryDto;
 use App\Application\GetWeekSummary;
-use App\Domain\Repository\WeekRepositoryInterface;
 use App\Domain\Week;
 use DateTimeImmutable;
-use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
+use Tests\Application\Double\FakeWeekRepository;
 
 final class GetWeekSummaryTest extends TestCase
 {
@@ -38,7 +37,7 @@ final class GetWeekSummaryTest extends TestCase
         );
         $week->setTotalExpenses(10.0);
 
-        $this->repository->save(1, $week);
+        $this->repository->save($week, 1);
 
         // Act
         $dto = $this->useCase->execute(weekId: 1, childId: 42);
@@ -47,9 +46,9 @@ final class GetWeekSummaryTest extends TestCase
         $this->assertInstanceOf(WeekSummaryDto::class, $dto);
         $this->assertSame(1, $dto->weekId);
         $this->assertSame(42, $dto->childId);
-        $this->assertSame(50.0, $dto->budget);
-        $this->assertSame(10.0, $dto->totalExpenses);
-        $this->assertSame(40.0, $dto->balance);
+        $this->assertEqualsWithDelta(50.0, $dto->budget, 0.001);
+        $this->assertEqualsWithDelta(10.0, $dto->totalExpenses, 0.001);
+        $this->assertEqualsWithDelta(40.0, $dto->balance, 0.001);
         $this->assertEquals($start, $dto->startDate);
         $this->assertEquals($end, $dto->endDate);
     }
@@ -73,36 +72,31 @@ final class GetWeekSummaryTest extends TestCase
             endDate: $end
         );
 
-        $this->repository->save(5, $week);
+        $this->repository->save($week, 5);
 
         $this->expectException(RuntimeException::class);
 
         $this->useCase->execute(weekId: 5, childId: 99);
     }
-}
 
-final class FakeWeekRepository implements WeekRepositoryInterface
-{
-    /** @var array<int, Week> */
-    private array $weeks = [];
-
-    public function save(int $weekId, Week $week): void
+    public function testRetourneZeroDepensesParDefaut(): void
     {
-        $this->weeks[$weekId] = $week;
-    }
+        $start = new DateTimeImmutable('2024-07-01');
+        $end   = new DateTimeImmutable('2024-07-07');
 
-    public function findByIdForChild(int $weekId, int $childId): ?Week
-    {
-        $week = $this->weeks[$weekId] ?? null;
+        $week = new Week(
+            childId: 50,
+            budget: 25.0,
+            startDate: $start,
+            endDate: $end
+        );
 
-        if ($week === null) {
-            return null;
-        }
+        $this->repository->save($week, 10);
 
-        if ($week->childId() !== $childId) {
-            return null;
-        }
+        $dto = $this->useCase->execute(weekId: 10, childId: 50);
 
-        return $week;
+        $this->assertEqualsWithDelta(0.0, $dto->totalExpenses, 0.001);
+        $this->assertEqualsWithDelta(25.0, $dto->balance, 0.001);
     }
 }
+

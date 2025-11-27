@@ -67,4 +67,20 @@ final class ExpenseTest extends TestCase
             amount: 0.0
         );
     }
+
+    public function testDescriptionPeutEtreNull(): void
+    {
+        $date = new DateTimeImmutable('2024-06-05');
+        $expense = new Expense(
+            childId: 3,
+            weekId: 2,
+            date: $date,
+            category: 'books',
+            amount: 8.5,
+            description: null
+        );
+
+        $this->assertNull($expense->description());
+        $this->assertSame(8.5, $expense->amount());
+    }
 }

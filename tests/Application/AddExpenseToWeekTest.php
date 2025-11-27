@@ -6,13 +6,14 @@ namespace Tests\Application;
 
 use App\Application\AddExpenseToWeek;
 use App\Application\Dto\ExpenseSummaryDto;
-use App\Domain\Repository\ExpenseRepositoryInterface;
-use App\Domain\Repository\WeekRepositoryInterface;
+use App\Domain\Week;
 use DateTimeImmutable;
 use DomainException;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
+use Tests\Application\Double\FakeExpenseRepository;
+use Tests\Application\Double\FakeWeekRepository;
 
 final class AddExpenseToWeekTest extends TestCase
 {
@@ -32,7 +33,7 @@ final class AddExpenseToWeekTest extends TestCase
 
     public function testAjoutDepenseValideMetAJourLeSolde(): void
     {
-        $this->weekRepository->storeWeek(
+        $week = $this->createWeek(
             weekId: 1,
             childId: 10,
             budget: 50.0,
@@ -53,8 +54,8 @@ final class AddExpenseToWeekTest extends TestCase
         $this->assertSame('food', $dto->category);
         $this->assertSame(5.0, $dto->amount);
         $this->assertEquals(new DateTimeImmutable('2024-06-05'), $dto->date);
-        $this->assertEquals(35.0, $dto->newBalance); // budget 50 - (10+5)
-        $this->assertEquals(15.0, $this->weekRepository->getTotalExpenses(1));
+        $this->assertEqualsWithDelta(35.0, $dto->newBalance, 0.001); // budget 50 - (10+5)
+        $this->assertEqualsWithDelta(15.0, $this->weekRepository->findByIdForChild(1, 10)?->totalExpenses(), 0.001);
     }
 
     public function testAjoutDepenseDansUneSemaineInexistanteDoitLeverException(): void
@@ -72,7 +73,7 @@ final class AddExpenseToWeekTest extends TestCase
 
     public function testAjoutDepenseAvecMontantNegatifDoitLeverException(): void
     {
-        $this->weekRepository->storeWeek(
+        $this->createWeek(
             weekId: 1,
             childId: 10,
             budget: 50.0,
@@ -94,7 +95,7 @@ final class AddExpenseToWeekTest extends TestCase
 
     public function testAjoutDepenseHorsPlageDoitLeverException(): void
     {
-        $this->weekRepository->storeWeek(
+        $this->createWeek(
             weekId: 1,
             childId: 10,
             budget: 50.0,
@@ -114,9 +115,115 @@ final class AddExpenseToWeekTest extends TestCase
         );
     }
 
+    public function testAjoutDepenseDepasseBudgetDoitLeverException(): void
+    {
+        $this->createWeek(
+            weekId: 1,
+            childId: 10,
+            budget: 20.0,
+            totalExpenses: 18.0,
+            start: new DateTimeImmutable('2024-06-03'),
+            end: new DateTimeImmutable('2024-06-09')
+        );
+
+        $this->expectException(DomainException::class);
+
+        $this->useCase->execute(
+            childId: 10,
+            weekId: 1,
+            category: 'food',
+            amount: 5.0,
+            date: new DateTimeImmutable('2024-06-05')
+        );
+    }
+
+    public function testAjoutDepenseLeJourDeDebutOuFinEstAccepte(): void
+    {
+        $this->createWeek(
+            weekId: 1,
+            childId: 10,
+            budget: 50.0,
+            totalExpenses: 0.0,
+            start: new DateTimeImmutable('2024-06-03'),
+            end: new DateTimeImmutable('2024-06-09')
+        );
+
+        $dtoStart = $this->useCase->execute(
+            childId: 10,
+            weekId: 1,
+            category: 'food',
+            amount: 10.0,
+            date: new DateTimeImmutable('2024-06-03')
+        );
+
+        $dtoEnd = $this->useCase->execute(
+            childId: 10,
+            weekId: 1,
+            category: 'movies',
+            amount: 5.0,
+            date: new DateTimeImmutable('2024-06-09')
+        );
+
+        $this->assertEqualsWithDelta(35.0, $dtoEnd->newBalance, 0.001);
+        $this->assertEqualsWithDelta(15.0, $this->weekRepository->findByIdForChild(1, 10)?->totalExpenses(), 0.001);
+        $this->assertEquals(new DateTimeImmutable('2024-06-03'), $dtoStart->date);
+        $this->assertEquals(new DateTimeImmutable('2024-06-09'), $dtoEnd->date);
+    }
+
+    public function testAjoutDepensePourUnAutreEnfantDoitLeverException(): void
+    {
+        $this->createWeek(
+            weekId: 1,
+            childId: 11,
+            budget: 50.0,
+            totalExpenses: 0.0,
+            start: new DateTimeImmutable('2024-06-03'),
+            end: new DateTimeImmutable('2024-06-09')
+        );
+
+        $this->expectException(RuntimeException::class);
+
+        $this->useCase->execute(
+            childId: 10,
+            weekId: 1,
+            category: 'food',
+            amount: 5.0,
+            date: new DateTimeImmutable('2024-06-05')
+        );
+    }
+
+    public function testLaDepenseEstPersisteeAvecLesBonnesValeurs(): void
+    {
+        $date = new DateTimeImmutable('2024-06-05');
+        $this->createWeek(
+            weekId: 4,
+            childId: 12,
+            budget: 40.0,
+            totalExpenses: 0.0,
+            start: new DateTimeImmutable('2024-06-03'),
+            end: new DateTimeImmutable('2024-06-09')
+        );
+
+        $this->useCase->execute(
+            childId: 12,
+            weekId: 4,
+            category: 'books',
+            amount: 7.5,
+            date: $date
+        );
+
+        $all = $this->expenseRepository->all();
+        $this->assertCount(1, $all);
+        $expense = $all[0];
+        $this->assertSame(4, $expense['weekId']);
+        $this->assertSame('books', $expense['category']);
+        $this->assertEqualsWithDelta(7.5, $expense['amount'], 0.001);
+        $this->assertEquals($date, $expense['date']);
+    }
+
     public function testLeDTORetourneContientLesBonnesValeurs(): void
     {
-        $this->weekRepository->storeWeek(
+        $this->createWeek(
             weekId: 2,
             childId: 7,
             budget: 100.0,
@@ -138,53 +245,15 @@ final class AddExpenseToWeekTest extends TestCase
         $this->assertSame('transport', $dto->category);
         $this->assertSame(15.0, $dto->amount);
         $this->assertEquals(new DateTimeImmutable('2024-06-07'), $dto->date);
-        $this->assertEquals(65.0, $dto->newBalance); // budget 100 - (20+15)
+        $this->assertEqualsWithDelta(65.0, $dto->newBalance, 0.001); // budget 100 - (20+15)
     }
-}
-
-final class FakeWeekRepository implements WeekRepositoryInterface
-{
-    /** @var array<int, array{childId:int,budget:float,totalExpenses:float,start:DateTimeImmutable,end:DateTimeImmutable}> */
-    private array $weeks = [];
-
-    public function storeWeek(int $weekId, int $childId, float $budget, float $totalExpenses, DateTimeImmutable $start, DateTimeImmutable $end): void
+    
+    private function createWeek(int $weekId, int $childId, float $budget, float $totalExpenses, DateTimeImmutable $start, DateTimeImmutable $end): Week
     {
-        $this->weeks[$weekId] = [
-            'childId' => $childId,
-            'budget' => $budget,
-            'totalExpenses' => $totalExpenses,
-            'start' => $start,
-            'end' => $end,
-        ];
-    }
+        $week = new Week($childId, $budget, $start, $end);
+        $week->setTotalExpenses($totalExpenses);
+        $this->weekRepository->save($week, $weekId);
 
-    public function findByIdForChild(int $weekId, int $childId): ?array
-    {
-        $week = $this->weeks[$weekId] ?? null;
-        if ($week === null || $week['childId'] !== $childId) {
-            return null;
-        }
         return $week;
-    }
-
-    public function getTotalExpenses(int $weekId): float
-    {
-        return $this->weeks[$weekId]['totalExpenses'] ?? 0.0;
-    }
-
-    public function incrementExpenses(int $weekId, float $amount): void
-    {
-        $this->weeks[$weekId]['totalExpenses'] += $amount;
-    }
-}
-
-final class FakeExpenseRepository implements ExpenseRepositoryInterface
-{
-    /** @var array<int, array> */
-    public array $expenses = [];
-
-    public function save(int $weekId, int $childId, string $category, float $amount, DateTimeImmutable $date): void
-    {
-        $this->expenses[] = compact('weekId', 'childId', 'category', 'amount', 'date');
     }
 }
