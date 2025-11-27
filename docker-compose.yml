@@ -9,6 +9,7 @@ services:
     environment:
       APP_ENV: local
       APP_DEBUG: "true"
+      XDEBUG_MODE: coverage
     env_file:
       - .env
     volumes:

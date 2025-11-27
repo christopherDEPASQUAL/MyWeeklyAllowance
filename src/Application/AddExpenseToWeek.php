@@ -25,7 +25,8 @@ final class AddExpenseToWeek
         int $weekId,
         string $category,
         float $amount,
-        DateTimeImmutable $date
+        DateTimeImmutable $date,
+        ?string $description = null
     ): ExpenseSummaryDto {
         if ($amount <= 0) {
             throw new InvalidArgumentException('Amount must be positive');
@@ -39,7 +40,7 @@ final class AddExpenseToWeek
         $week->addExpense($category, $amount, $date);
         $this->weekRepository->save($week, $weekId);
 
-        $this->expenseRepository->save($weekId, $category, $amount, $date);
+        $this->expenseRepository->save($weekId, $category, $amount, $date, $description);
 
         return new ExpenseSummaryDto(
             weekId: $weekId,

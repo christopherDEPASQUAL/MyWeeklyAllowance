@@ -14,6 +14,7 @@ use PHPUnit\Framework\TestCase;
 use RuntimeException;
 use Tests\Application\Double\FakeExpenseRepository;
 use Tests\Application\Double\FakeWeekRepository;
+use Tests\Support\WeekBuilder;
 
 final class AddExpenseToWeekTest extends TestCase
 {
@@ -209,7 +210,8 @@ final class AddExpenseToWeekTest extends TestCase
             weekId: 4,
             category: 'books',
             amount: 7.5,
-            date: $date
+            date: $date,
+            description: 'BD'
         );
 
         $all = $this->expenseRepository->all();
@@ -219,6 +221,7 @@ final class AddExpenseToWeekTest extends TestCase
         $this->assertSame('books', $expense['category']);
         $this->assertEqualsWithDelta(7.5, $expense['amount'], 0.001);
         $this->assertEquals($date, $expense['date']);
+        $this->assertSame('BD', $expense['description']);
     }
 
     public function testLeDTORetourneContientLesBonnesValeurs(): void
@@ -247,11 +250,71 @@ final class AddExpenseToWeekTest extends TestCase
         $this->assertEquals(new DateTimeImmutable('2024-06-07'), $dto->date);
         $this->assertEqualsWithDelta(65.0, $dto->newBalance, 0.001); // budget 100 - (20+15)
     }
-    
+
+    public function testDepenseTropEleveeNePersisteRienEtNeModifiePasSemaine(): void
+    {
+        $this->createWeek(
+            weekId: 1,
+            childId: 10,
+            budget: 20.0,
+            totalExpenses: 18.0,
+            start: new DateTimeImmutable('2024-06-03'),
+            end: new DateTimeImmutable('2024-06-09')
+        );
+
+        try {
+            $this->useCase->execute(
+                childId: 10,
+                weekId: 1,
+                category: 'food',
+                amount: 5.0,
+                date: new DateTimeImmutable('2024-06-05')
+            );
+            $this->fail('Expected DomainException to be thrown');
+        } catch (DomainException $exception) {
+            // no-op
+        }
+
+        $storedWeek = $this->weekRepository->findByIdForChild(1, 10);
+        $this->assertEqualsWithDelta(18.0, $storedWeek?->totalExpenses(), 0.001);
+        $this->assertSame([], $this->expenseRepository->all());
+    }
+
+    public function testDescriptionNullEstPersisteeQuandNonFournie(): void
+    {
+        $date = new DateTimeImmutable('2024-06-06');
+        $this->createWeek(
+            weekId: 8,
+            childId: 13,
+            budget: 40.0,
+            totalExpenses: 0.0,
+            start: new DateTimeImmutable('2024-06-03'),
+            end: new DateTimeImmutable('2024-06-09')
+        );
+
+        $this->useCase->execute(
+            childId: 13,
+            weekId: 8,
+            category: 'toys',
+            amount: 3.5,
+            date: $date
+        );
+
+        $expenses = $this->expenseRepository->all();
+        $this->assertCount(1, $expenses);
+        $this->assertNull($expenses[0]['description']);
+    }
+
     private function createWeek(int $weekId, int $childId, float $budget, float $totalExpenses, DateTimeImmutable $start, DateTimeImmutable $end): Week
     {
-        $week = new Week($childId, $budget, $start, $end);
-        $week->setTotalExpenses($totalExpenses);
+        $builder = (new WeekBuilder())
+            ->withChildId($childId)
+            ->withBudget($budget)
+            ->withStartDate($start)
+            ->withEndDate($end)
+            ->withTotalExpenses($totalExpenses);
+
+        $week = $builder->build();
         $this->weekRepository->save($week, $weekId);
 
         return $week;

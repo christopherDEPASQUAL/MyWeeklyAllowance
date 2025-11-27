@@ -218,6 +218,7 @@ try {
         }
 
         $category = trim($_POST['category'] ?? '');
+        $description = trim($_POST['description'] ?? '') ?: null;
         $amount = (float) ($_POST['amount'] ?? 0);
         $dateInput = $_POST['date'] ?? '';
 
@@ -233,7 +234,7 @@ try {
         $useCase = new AddExpenseToWeek($weekRepo, $expenseRepo);
 
         $weekId = ensureWeekForDate($container, $pdo, $childId, $date);
-        $useCase->execute($childId, $weekId, $category, $amount, $date);
+        $useCase->execute($childId, $weekId, $category, $amount, $date, $description);
 
         $_SESSION['flash_success'][] = "Dépense ajoutée : {$category} - {$amount} €.";
         redirect('/?view=child');

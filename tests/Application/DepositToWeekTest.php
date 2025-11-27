@@ -6,12 +6,12 @@ namespace Tests\Application;
 
 use App\Application\DepositToWeek;
 use App\Application\Dto\WeekSummaryDto;
-use App\Domain\Week;
 use DateTimeImmutable;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 use Tests\Application\Double\FakeWeekRepository;
+use Tests\Support\WeekBuilder;
 
 final class DepositToWeekTest extends TestCase
 {
@@ -26,10 +26,11 @@ final class DepositToWeekTest extends TestCase
 
     public function testDepotAugmenteBudgetEtSolde(): void
     {
-        $start = new DateTimeImmutable('2024-06-03');
-        $end   = new DateTimeImmutable('2024-06-09');
-        $week  = new Week(childId: 5, budget: 20.0, startDate: $start, endDate: $end);
-        $week->setTotalExpenses(5.0);
+        $week = (new WeekBuilder())
+            ->withChildId(5)
+            ->withBudget(20.0)
+            ->withTotalExpenses(5.0)
+            ->build();
         $this->repository->save($week, 1);
 
         $dto = $this->useCase->execute(weekId: 1, childId: 5, amount: 10.0);
@@ -46,9 +47,10 @@ final class DepositToWeekTest extends TestCase
 
     public function testDepotMontantNonPositifInterdit(): void
     {
-        $start = new DateTimeImmutable('2024-06-03');
-        $end   = new DateTimeImmutable('2024-06-09');
-        $week  = new Week(childId: 5, budget: 20.0, startDate: $start, endDate: $end);
+        $week  = (new WeekBuilder())
+            ->withChildId(5)
+            ->withBudget(20.0)
+            ->build();
         $this->repository->save($week, 1);
 
         $this->expectException(InvalidArgumentException::class);
@@ -65,14 +67,37 @@ final class DepositToWeekTest extends TestCase
 
     public function testDepotSurSemaineDunAutreEnfantDoitLeverException(): void
     {
-        $start = new DateTimeImmutable('2024-06-03');
-        $end   = new DateTimeImmutable('2024-06-09');
-        $week  = new Week(childId: 9, budget: 20.0, startDate: $start, endDate: $end);
+        $week  = (new WeekBuilder())
+            ->withChildId(9)
+            ->withBudget(20.0)
+            ->build();
         $this->repository->save($week, 1);
 
         $this->expectException(RuntimeException::class);
 
         $this->useCase->execute(weekId: 1, childId: 5, amount: 10.0);
+    }
+
+    public function testDepotNeModifiePasLesDatesNiLesDepenses(): void
+    {
+        $week = (new WeekBuilder())
+            ->withChildId(15)
+            ->withBudget(25.0)
+            ->withTotalExpenses(4.0)
+            ->withStartDate(new DateTimeImmutable('2024-06-10'))
+            ->build();
+        $this->repository->save($week, 3);
+
+        $dto = $this->useCase->execute(weekId: 3, childId: 15, amount: 5.0);
+
+        $this->assertEquals($week->startDate(), $dto->startDate);
+        $this->assertEquals($week->endDate(), $dto->endDate);
+        $this->assertEqualsWithDelta(4.0, $dto->totalExpenses, 0.001);
+
+        $stored = $this->repository->findByIdForChild(3, 15);
+        $this->assertEquals($week->startDate(), $stored?->startDate());
+        $this->assertEquals($week->endDate(), $stored?->endDate());
+        $this->assertEqualsWithDelta(4.0, $stored?->totalExpenses(), 0.001);
     }
 }
 

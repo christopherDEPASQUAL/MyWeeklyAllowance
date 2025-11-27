@@ -8,5 +8,5 @@ use DateTimeImmutable;
 
 interface ExpenseRepositoryInterface
 {
-    public function save(int $weekId, string $category, float $amount, DateTimeImmutable $date): void;
+    public function save(int $weekId, string $category, float $amount, DateTimeImmutable $date, ?string $description = null): void;
 }

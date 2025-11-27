@@ -68,6 +68,14 @@ final class WeekTest extends TestCase
         $week->addExpense('bad', 0.0, $this->monday);
     }
 
+    public function testAddFundsMustBePositive(): void
+    {
+        $week = new Week(1, 20.0, $this->monday, $this->sunday);
+
+        $this->expectException(InvalidArgumentException::class);
+        $week->addFunds(0.0);
+    }
+
     public function testAddExpenseOnBoundsIsAllowed(): void
     {
         $week = new Week(1, 50.0, $this->monday, $this->sunday);

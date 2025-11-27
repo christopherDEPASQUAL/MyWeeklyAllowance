@@ -87,5 +87,44 @@ final class ApplyWeeklyAllowanceTest extends TestCase
             startDate: $start
         );
     }
+
+    public function testCreePlusieursSemainesPourLeMemeEnfantGenereDesIdsDistincts(): void
+    {
+        $firstStart = new DateTimeImmutable('2024-06-03');
+        $secondStart = new DateTimeImmutable('2024-06-10');
+
+        $first = $this->useCase->execute(
+            childId: 7,
+            weeklyAmount: 30.0,
+            startDate: $firstStart
+        );
+
+        $second = $this->useCase->execute(
+            childId: 7,
+            weeklyAmount: 40.0,
+            startDate: $secondStart
+        );
+
+        $this->assertSame(1, $first->weekId);
+        $this->assertSame(2, $second->weekId);
+        $this->assertSame(30.0, $this->repository->findByIdForChild(1, 7)?->budget());
+        $this->assertSame(40.0, $this->repository->findByIdForChild(2, 7)?->budget());
+        $this->assertEquals($firstStart->modify('+6 days'), $first->endDate);
+        $this->assertEquals($secondStart->modify('+6 days'), $second->endDate);
+    }
+
+    public function testAccepteMontantDecimalEtCalculeLeSolde(): void
+    {
+        $start = new DateTimeImmutable('2024-07-01');
+
+        $dto = $this->useCase->execute(
+            childId: 3,
+            weeklyAmount: 12.75,
+            startDate: $start
+        );
+
+        $this->assertEqualsWithDelta(12.75, $dto->budget, 0.0001);
+        $this->assertEqualsWithDelta(12.75, $dto->balance, 0.0001);
+    }
 }
 

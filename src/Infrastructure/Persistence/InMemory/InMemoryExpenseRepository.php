@@ -12,17 +12,18 @@ final class InMemoryExpenseRepository implements ExpenseRepositoryInterface
     /** @var array<int, array{weekId:int,category:string,amount:float,date:DateTimeImmutable}> */
     private array $expenses = [];
 
-    public function save(int $weekId, string $category, float $amount, DateTimeImmutable $date): void
+    public function save(int $weekId, string $category, float $amount, DateTimeImmutable $date, ?string $description = null): void
     {
         $this->expenses[] = [
             'weekId' => $weekId,
             'category' => $category,
             'amount' => $amount,
             'date' => $date,
+            'description' => $description,
         ];
     }
 
-    /** @return array<int, array{weekId:int,category:string,amount:float,date:DateTimeImmutable}> */
+    /** @return array<int, array{weekId:int,category:string,amount:float,date:DateTimeImmutable,description:?string}> */
     public function all(): array
     {
         return $this->expenses;

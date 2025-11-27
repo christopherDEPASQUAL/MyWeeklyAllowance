@@ -19,6 +19,8 @@ RUN apt-get update && apt-get install -y \
     && docker-php-ext-install \
     pdo_mysql \
     mysqli \
+    && pecl install xdebug \
+    && docker-php-ext-enable xdebug \
     && a2enmod rewrite \
     && rm -rf /var/lib/apt/lists/*
 

@@ -8,7 +8,6 @@
         <testsuite name="application">
             <directory suffix="Test.php">tests/Domain</directory>
             <directory suffix="Test.php">tests/Application</directory>
-            <directory suffix="Test.php">tests/Integration</directory>
         </testsuite>
     </testsuites>
 

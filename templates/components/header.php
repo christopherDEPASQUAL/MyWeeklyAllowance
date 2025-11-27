@@ -17,10 +17,10 @@ $role = $currentRole ?? 'guest';
             <?php endif; ?>
         </div>
     </div>
-    <button class="header__burger" aria-label="Menu">
+    <button class="header__burger" aria-label="Menu" aria-expanded="false" aria-controls="header-nav">
         <span></span><span></span><span></span>
     </button>
-    <nav class="header__nav">
+    <nav class="header__nav" id="header-nav">
         <a class="nav-link" href="/?view=login">Login</a>
         <?php if ($role !== 'parent'): ?>
             <a class="nav-link" href="/?view=register">Inscription parent</a>

@@ -21,6 +21,10 @@ $subtitle = 'Vue enfant';
                 <span>Catégorie</span>
                 <input type="text" name="category" placeholder="Snacks, transport..." required>
             </label>
+            <label class="form__field">
+                <span>Description (optionnel)</span>
+                <input type="text" name="description" placeholder="Détails...">
+            </label>
             <label class="form__field form__field--inline">
                 <span class="muted">€</span>
                 <input type="number" name="amount" min="0.01" step="0.01" placeholder="5.00" required>

@@ -16,10 +16,10 @@ final class PdoExpenseRepository implements ExpenseRepositoryInterface
     {
     }
 
-    public function save(int $weekId, string $category, float $amount, DateTimeImmutable $date): void
+    public function save(int $weekId, string $category, float $amount, DateTimeImmutable $date, ?string $description = null): void
     {
         $stmt = $this->pdo->prepare(
-            'INSERT INTO expenses (week_id, category, amount, date) VALUES (:week_id, :category, :amount, :date)'
+            'INSERT INTO expenses (week_id, category, amount, date, description) VALUES (:week_id, :category, :amount, :date, :description)'
         );
 
         try {
@@ -28,6 +28,7 @@ final class PdoExpenseRepository implements ExpenseRepositoryInterface
                 ':category' => $category,
                 ':amount' => $amount,
                 ':date' => $date->format('Y-m-d'),
+                ':description' => $description,
             ]);
         } catch (PDOException $e) {
             throw new RuntimeException('Failed to save expense', previous: $e);

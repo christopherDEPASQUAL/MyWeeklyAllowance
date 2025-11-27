@@ -74,9 +74,25 @@ $csrf = csrfToken();
     const burger = document.querySelector('.header__burger');
     const nav = document.querySelector('.header__nav');
     if (burger && nav) {
-        burger.addEventListener('click', () => {
-            nav.classList.toggle('is-open');
-            burger.classList.toggle('is-active');
+        const navLinks = nav.querySelectorAll('a');
+
+        const toggleNav = (forceOpen = null) => {
+            const shouldOpen = forceOpen ?? !nav.classList.contains('is-open');
+            nav.classList.toggle('is-open', shouldOpen);
+            burger.classList.toggle('is-active', shouldOpen);
+            burger.setAttribute('aria-expanded', shouldOpen ? 'true' : 'false');
+        };
+
+        burger.addEventListener('click', () => toggleNav());
+
+        navLinks.forEach(link => {
+            link.addEventListener('click', () => toggleNav(false));
+        });
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') {
+                toggleNav(false);
+            }
         });
     }
 </script>
