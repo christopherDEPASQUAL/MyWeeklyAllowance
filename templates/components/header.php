@@ -5,7 +5,7 @@ declare(strict_types=1);
 $title = $title ?? 'MyWeeklyAllowance';
 $subtitle = $subtitle ?? '';
 $role = $currentRole ?? 'guest';
-$role = $currentRole ?? 'guest';
+$currentView = $currentView ?? ($view ?? 'login');
 ?>
 <header class="header">
     <div class="header__brand">
@@ -21,13 +21,15 @@ $role = $currentRole ?? 'guest';
         <span></span><span></span><span></span>
     </button>
     <nav class="header__nav" id="header-nav">
-        <a class="nav-link" href="/?view=login">Login</a>
-        <?php if ($role !== 'parent'): ?>
-            <a class="nav-link" href="/?view=register">Inscription parent</a>
-        <?php endif; ?>
-        <a class="nav-link" href="/?view=child">Espace enfant</a>
-        <?php if ($role === 'parent'): ?>
-            <a class="nav-link" href="/?view=parent">Espace parent</a>
+        <?php if ($role === 'guest'): ?>
+            <?php if ($currentView === 'register'): ?>
+                <a class="nav-link" href="/?view=login">Login</a>
+            <?php endif; ?>
+            <!-- <a class="nav-link<?= $currentView === 'register' ? ' is-active' : '' ?>" href="/?view=register">Inscription parent</a> -->
+        <?php elseif ($role === 'child'): ?>
+            <a class="nav-link<?= $currentView === 'child' ? ' is-active' : '' ?>" href="/?view=child">Espace enfant</a>
+        <?php elseif ($role === 'parent'): ?>
+            <a class="nav-link<?= $currentView === 'parent' ? ' is-active' : '' ?>" href="/?view=parent">Espace parent</a>
         <?php endif; ?>
     </nav>
     <div class="header__actions">

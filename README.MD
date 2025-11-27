@@ -1,16 +1,39 @@
-# 1. Construire et lancer les conteneurs
+# MyWeeklyAllowance — module d'argent de poche (TDD)
+
+## Rappel de l'exercice
+Objectif : concevoir un module de gestion d'argent de poche pour adolescents en TDD.
+- Phase 1 : ecrire les tests unitaires (RED)
+- Phase 2 : coder l'implementation jusqu'a passage des tests (BLUE)
+- Phase 3 : refactoriser (GREEN)
+- Phase 4 : verifier la couverture
+
+Fonctionnalites attendues :
+- creer un compte pour un ado
+- deposer de l'argent
+- enregistrer des depenses
+- fixer une allocation hebdomadaire automatique
+
+## Stack et prerequis
+- Docker + Docker Compose
+- PHP 8.3 (dans le conteneur), Composer, PHPUnit 12
+- Xdebug integre pour la couverture
+
+## Demarrer le projet
+```bash
 docker compose up -d --build
-
-# 2. Voir les logs de l'app
-docker compose logs -f app
-
-# 3. Installer les dépendances PHP (dans le conteneur)
 docker compose exec app composer install
+```
 
-# 4. Lancer les tests PHPUnit
-- **Dossier complet** : docker compose exec app ./vendor/bin/phpunit --bootstrap vendor/autoload.php tests
-- **Fichier ciblé** : docker compose exec app ./vendor/bin/phpunit --bootstrap vendor/autoload.php tests/Domain/WeekTest.php // Exemple pour le fichier weekTest.php
-- **Couverture (Xdebug)** : docker compose exec app env XDEBUG_MODE=coverage ./vendor/bin/phpunit --coverage-text
+## Lancer les tests
+- Tous les tests :  
+  `docker compose exec app ./vendor/bin/phpunit --bootstrap vendor/autoload.php tests`
+- Fichier cible :  
+  `docker compose exec app ./vendor/bin/phpunit --bootstrap vendor/autoload.php tests/Domain/WeekTest.php`
+- Couverture texte :  
+  `docker compose exec app env XDEBUG_MODE=coverage ./vendor/bin/phpunit --coverage-text`
 
-# 5. Arrêter et supprimer les conteneurs
-docker compose down
+## Structure rapide
+- `src/Domain` : entites (Week, Expense, User) + regles metier
+- `src/Application` : use cases (ApplyWeeklyAllowance, AddExpenseToWeek, DepositToWeek, GetWeekSummary) + DTO
+- `src/Infrastructure` : conteneur, persistance InMemory et PDO
+- `tests/Domain`, `tests/Application`, `tests/Integration` : tests TDD et doubles in-memory
