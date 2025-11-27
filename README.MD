@@ -1,4 +1,5 @@
 # MyWeeklyAllowance — module d'argent de poche (TDD)
+![Aperçu de l'application](public/assets/MyWeekAllowance.png)
 
 ## Rappel de l'exercice
 Objectif : concevoir un module de gestion d'argent de poche pour adolescents en TDD.
@@ -31,6 +32,8 @@ docker compose exec app composer install
   `docker compose exec app ./vendor/bin/phpunit --bootstrap vendor/autoload.php tests/Domain/WeekTest.php`
 - Couverture texte :  
   `docker compose exec app env XDEBUG_MODE=coverage ./vendor/bin/phpunit --coverage-text`
+- Couverture HTML :  
+  `docker compose exec app env XDEBUG_MODE=coverage ./vendor/bin/phpunit --coverage-html coverage`
 
 ## Structure rapide
 - `src/Domain` : entites (Week, Expense, User) + regles metier
